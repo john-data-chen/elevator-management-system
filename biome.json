@@ -56,7 +56,12 @@
     "enabled": true,
     "rules": {
       "recommended": true
-    }
+    },
+    "ignore": [
+      "./node_modules",
+      "src/components/ui",
+      "src/components/ui/**/*"
+    ]
   },
   "javascript": {
     "formatter": {
