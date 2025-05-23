@@ -3,7 +3,7 @@ import type { FloorNumber } from './floor.types';
 
 // Represents a person waiting for or using an elevator
 export interface Person {
-  id: string; // Unique identifier for the person
+  id: string; // Unique identifier such as person-1, person-2, etc.
   spawnTime: number; // Simulation time when the person appears
   sourceFloor: FloorNumber; // Floor where the person starts
   destinationFloor: FloorNumber; // Floor where the person wants to go

@@ -3,7 +3,7 @@ export const MIN_FLOOR = 1;
 export const MAX_FLOOR = 10;
 
 // Elevator settings
-export const ELEVATOR_COUNT = 2;
+export const ELEVATOR_TOTAL = 2;
 export const ELEVATOR_CAPACITY = 5;
 
 // Time settings (unit: seconds)

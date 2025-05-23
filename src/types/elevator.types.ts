@@ -3,7 +3,7 @@ import type { FloorNumber } from './floor.types';
 import type { Person } from './person.types';
 
 // Represents the unique identifier for an elevator
-export type ElevatorId = 'e1' | 'e2'; // Assuming 2 elevators, identified by 0 and 1
+export type ElevatorId = 'elevator-1' | 'elevator-2';
 
 // Represents the status of an elevator
 export type ElevatorStatus =
