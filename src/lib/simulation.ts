@@ -165,7 +165,23 @@ export function runFullSimulation() {
     peopleGenerated: 0,
     peopleCompleted: 0
   };
+  let lastLogTime = -1;
   while (state.peopleCompleted < TOTAL_PEOPLE) {
+    // 印出目前進度
+    if (state.currentTime % 10 === 0 && state.currentTime !== lastLogTime) {
+      console.log(
+        `[Time ${state.currentTime}] Completed: ${state.peopleCompleted}, Generated: ${state.peopleGenerated}, Elevators:`,
+        state.elevators.map((e) => ({
+          id: e.id,
+          floor: e.currentFloor,
+          status: e.status,
+          passengers: e.passengers.length,
+          targets: Array.from(e.targetFloors)
+        }))
+      );
+      lastLogTime = state.currentTime;
+    }
+
     // 產生新乘客
     if (
       state.peopleGenerated < TOTAL_PEOPLE &&
@@ -200,6 +216,10 @@ export function runFullSimulation() {
         floor: source,
         elevatorId: assignedId
       });
+      // 追蹤分配狀況
+      console.log(
+        `[Time ${state.currentTime}] Person ${person.id} assigned to elevator ${assignedId} from ${source} to ${dest}`
+      );
     }
     // 處理每部電梯
     for (const elevator of state.elevators) {
@@ -214,17 +234,34 @@ export function runFullSimulation() {
       // 若需停靠
       if (elevator.targetFloors.has(elevator.currentFloor)) {
         processElevatorStop(state, elevator);
+        // 追蹤停靠
+        console.log(
+          `[Time ${state.currentTime}] Elevator ${elevator.id} stopped at floor ${elevator.currentFloor}, passengers: ${elevator.passengers.length}`
+        );
         continue;
       }
       // 若有目標樓層，移動
       if (elevator.targetFloors.size > 0) {
         moveElevator(elevator);
+        // 追蹤移動
+        console.log(
+          `[Time ${state.currentTime}] Elevator ${elevator.id} moving to floor ${elevator.currentFloor}, direction: ${elevator.currentDirection}`
+        );
       } else {
         elevator.status = 'idle';
         elevator.currentDirection = 'idle';
       }
     }
     state.currentTime++;
+
+    // 疑似問題區：若有乘客永遠無法完成，會造成無限迴圈
+    // 建議加上最大迴圈次數保護
+    if (state.currentTime > 100000) {
+      console.error(
+        'Simulation exceeded 100,000 seconds, possible infinite loop!'
+      );
+      break;
+    }
   }
   return {
     totalTime: state.currentTime,
