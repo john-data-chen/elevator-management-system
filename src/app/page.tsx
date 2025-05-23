@@ -87,7 +87,10 @@ export default function Home() {
                 </p>
               ) : (
                 simulationLogs.map((log, index) => (
-                  <p key={log.time} className="text-muted-foreground text-sm">
+                  <p
+                    key={`${log.time}-${index}`}
+                    className="text-muted-foreground text-sm"
+                  >
                     [{log.time}] {log.message}
                   </p>
                 ))
