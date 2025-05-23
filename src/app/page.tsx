@@ -18,7 +18,7 @@ export default function Home() {
   };
 
   return (
-    <div className="container mx-auto p-4 flex flex-col items-center min-h-screen font-[family-name:var(--font-geist-sans)]">
+    <div className="container mx-auto p-4 flex flex-col items-center min-h-screen font-(family-name:--font-geist-sans)">
       <header className="w-full py-4 mb-8">
         <h1 className="text-3xl font-bold text-center">電梯管理系統儀表板</h1>
       </header>
