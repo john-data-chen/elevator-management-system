@@ -7,7 +7,12 @@
   },
   "files": {
     "ignoreUnknown": false,
-    "ignore": []
+    "ignore": [
+      "./node_modules",
+      "src/components/ui",
+      "src/components/ui/**/*",
+      "./*.json"
+    ]
   },
   "formatter": {
     "enabled": true,
@@ -46,7 +51,8 @@
       "**/dist",
       "**/ico",
       "src/components/ui",
-      "src/components/ui/**/*"
+      "src/components/ui/**/*",
+      "./*.json"
     ]
   },
   "organizeImports": {
@@ -57,11 +63,7 @@
     "rules": {
       "recommended": true
     },
-    "ignore": [
-      "./node_modules",
-      "src/components/ui",
-      "src/components/ui/**/*"
-    ]
+    "ignore": ["./node_modules", "src/components/ui", "src/components/ui/**/*"]
   },
   "javascript": {
     "formatter": {
