@@ -2,7 +2,6 @@
 
 import { Button } from '@/components/ui/button';
 import { ScrollArea } from '@/components/ui/scroll-area';
-import React from 'react'; // Import React for useState and useEffect if needed later
 
 export default function Home() {
   const handleStartSimulation = () => {
@@ -22,6 +21,19 @@ export default function Home() {
       <header className="w-full py-4 mb-8">
         <h1 className="text-3xl font-bold text-center">電梯管理系統儀表板</h1>
       </header>
+
+      <div className="w-full max-w-2xl mb-8 p-6 bg-card border rounded-lg shadow-sm">
+        <h2 className="text-xl font-semibold mb-3">模擬條件</h2>
+        <ul className="list-disc list-inside space-y-1 text-sm text-muted-foreground">
+          <li>大樓共10層樓，2部電梯，每層電梯共用1組按鈕</li>
+          <li>電梯只可容納5人</li>
+          <li>每行經一層樓需耗時1秒</li>
+          <li>每停一次處理接人放人需耗1秒</li>
+          <li>每秒產生1個人按電梯，設定出現樓層與目標的樓層，樓層隨機</li>
+          <li>模擬放進40人次，該設計需消耗掉所有人數，並統計秒數</li>
+        </ul>
+      </div>
+
       <main className="w-full max-w-2xl flex flex-col gap-6">
         <div className="flex justify-center">
           <Button onClick={handleStartSimulation} size="lg">
@@ -40,10 +52,15 @@ export default function Home() {
           </ScrollArea>
         </div>
       </main>
-      <footer className="w-full py-4 mt-auto">
-        <p className="text-center text-sm text-muted-foreground">
-          電梯模擬系統 MVP
-        </p>
+      <footer className="w-full py-8 mt-12 text-center">
+        <a
+          href="https://github.com/john-data-chen/elevator-management-system"
+          target="_blank"
+          rel="noopener noreferrer"
+          className="text-sm text-muted-foreground hover:text-primary transition-colors"
+        >
+          查看專案原始碼
+        </a>
       </footer>
     </div>
   );
