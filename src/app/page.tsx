@@ -5,38 +5,52 @@ import { ScrollArea } from '@/components/ui/scroll-area';
 import {
   BUTTONS_PER_FLOOR,
   ELEVATOR_CAPACITY,
-  ELEVATOR_COUNT,
+  ELEVATOR_TOTAL,
   MAX_FLOOR,
   PERSON_GENERATION_INTERVAL,
   STOP_TIME_AT_FLOOR,
   TOTAL_PEOPLE,
   TRAVEL_TIME_PER_FLOOR
 } from '@/constants/simulationConfig';
+import { runFullSimulation } from '@/lib/simulation';
+import type { SimulationLogEntry } from '@/types/simulation.types';
+import { useState } from 'react';
 
 export default function Home() {
+  const [simulationLogs, setSimulationLogs] = useState<SimulationLogEntry[]>(
+    []
+  );
+  const [totalSimulationTime, setTotalSimulationTime] = useState<number | null>(
+    null
+  );
+
   const handleStartSimulation = () => {
-    // TODO: Implement simulation start logic
     console.log('Simulation started!');
-    // For now, let's add a dummy log entry
-    const logArea = document.getElementById('log-area-content');
-    if (logArea) {
-      const newLogEntry = document.createElement('p');
-      newLogEntry.textContent = `[${new Date().toLocaleTimeString()}] Simulation button clicked.`;
-      logArea.appendChild(newLogEntry);
-    }
+    // 清空之前的日誌和時間
+    setSimulationLogs([]);
+    setTotalSimulationTime(null);
+
+    // 執行模擬
+    const results = runFullSimulation();
+
+    // 更新狀態
+    setSimulationLogs(results.logs);
+    setTotalSimulationTime(results.totalTime);
+
+    console.log('Simulation finished!', results);
   };
 
   return (
-    <div className="container mx-auto p-4 flex flex-col items-center min-h-screen font-(family-name:--font-geist-sans)">
-      <header className="w-full py-4 mb-8">
-        <h1 className="text-3xl font-bold text-center">電梯管理系統儀表板</h1>
+    <div className="font-(family-name:--font-geist-sans) container mx-auto flex min-h-screen flex-col items-center p-4">
+      <header className="mb-8 w-full py-4">
+        <h1 className="text-center font-bold text-3xl">電梯管理系統儀表板</h1>
       </header>
 
-      <div className="w-full max-w-2xl mb-8 p-6 bg-card border rounded-lg shadow-sm">
-        <h2 className="text-xl font-semibold mb-3">模擬條件</h2>
-        <ul className="list-disc list-inside space-y-1 text-sm text-muted-foreground">
+      <div className="mb-8 w-full max-w-2xl rounded-lg border bg-card p-6 shadow-sm">
+        <h2 className="mb-3 font-semibold text-xl">模擬條件</h2>
+        <ul className="list-inside list-disc space-y-1 text-muted-foreground text-sm">
           <li>
-            大樓共 {MAX_FLOOR} 層樓，{ELEVATOR_COUNT} 部電梯，每層電梯共用{' '}
+            大樓共 {MAX_FLOOR} 層樓，{ELEVATOR_TOTAL} 部電梯，每層電梯共用{' '}
             {BUTTONS_PER_FLOOR} 組按鈕
           </li>
           <li>電梯只可容納 {ELEVATOR_CAPACITY} 人</li>
@@ -52,30 +66,42 @@ export default function Home() {
         </ul>
       </div>
 
-      <main className="w-full max-w-2xl flex flex-col gap-6">
+      <main className="flex w-full max-w-2xl flex-col gap-6">
         <div className="flex justify-center">
           <Button onClick={handleStartSimulation} size="lg">
             開始模擬
           </Button>
         </div>
         <div className="flex flex-col gap-2">
-          <h2 className="text-xl font-semibold">執行日誌</h2>
-          <ScrollArea className="h-96 w-full rounded-md border p-4 bg-muted/40">
+          <h2 className="font-semibold text-xl">執行日誌</h2>
+          {totalSimulationTime !== null && (
+            <p className="text-muted-foreground text-sm">
+              總模擬時間: {totalSimulationTime} 秒
+            </p>
+          )}
+          <ScrollArea className="h-96 w-full rounded-md border bg-muted/40 p-4">
             <div id="log-area-content" className="flex flex-col gap-1">
-              <p className="text-sm text-muted-foreground">
-                點擊「開始模擬」按鈕以查看日誌...
-              </p>
-              {/* Log entries will be appended here */}
+              {simulationLogs.length === 0 ? (
+                <p className="text-muted-foreground text-sm">
+                  點擊「開始模擬」按鈕以查看日誌...
+                </p>
+              ) : (
+                simulationLogs.map((log, index) => (
+                  <p key={log.time} className="text-muted-foreground text-sm">
+                    [{log.time}] {log.message}
+                  </p>
+                ))
+              )}
             </div>
           </ScrollArea>
         </div>
       </main>
-      <footer className="w-full py-8 mt-12 text-center">
+      <footer className="mt-12 w-full py-8 text-center">
         <a
           href="https://github.com/john-data-chen/elevator-management-system"
           target="_blank"
           rel="noopener noreferrer"
-          className="text-sm text-muted-foreground hover:text-primary transition-colors"
+          className="text-muted-foreground text-sm transition-colors hover:text-primary"
         >
           查看專案原始碼
         </a>
