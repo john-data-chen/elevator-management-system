@@ -7,12 +7,7 @@
   },
   "files": {
     "ignoreUnknown": true,
-    "ignore": [
-      "./node_modules",
-      "src/components/ui",
-      "src/components/ui/**/*",
-      "./*.json"
-    ]
+    "ignore": ["./node_modules", "src/components/ui", "src/components/ui/**/*"]
   },
   "formatter": {
     "enabled": true,
@@ -51,8 +46,7 @@
       "**/dist",
       "**/ico",
       "src/components/ui",
-      "src/components/ui/**/*",
-      "./*.json"
+      "src/components/ui/**/*"
     ]
   },
   "organizeImports": {
@@ -61,7 +55,17 @@
   "linter": {
     "enabled": true,
     "rules": {
-      "recommended": true
+      "recommended": true,
+      "nursery": {
+        "useSortedClasses": {
+          "fix": "safe",
+          "level": "warn",
+          "options": {
+            "attributes": ["classList"],
+            "functions": ["cn", "clsx", "cva", "tw"]
+          }
+        }
+      }
     },
     "ignore": ["./node_modules", "src/components/ui", "src/components/ui/**/*"]
   },
