@@ -106,7 +106,7 @@ export default function Home() {
           rel="noopener noreferrer"
           className="text-muted-foreground text-sm transition-colors hover:text-primary"
         >
-          查看專案原始碼
+          查看專案原始碼與說明文件
         </a>
       </footer>
     </div>
