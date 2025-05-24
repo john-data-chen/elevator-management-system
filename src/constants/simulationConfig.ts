@@ -1,18 +1,20 @@
-// Building floor settings
+// 樓層設定
 export const MIN_FLOOR = 1;
 export const MAX_FLOOR = 10;
 
-// Elevator settings
+// 電梯設定
 export const ELEVATOR_TOTAL = 2;
 export const ELEVATOR_CAPACITY = 5;
 
-// Time settings (unit: seconds)
-export const TRAVEL_TIME_PER_FLOOR = 1; // Time required to pass one floor
-export const STOP_TIME_AT_FLOOR = 1; // Time required to pick up and drop off passengers
+// 時間 (秒)
+export const TRAVEL_TIME_PER_FLOOR = 1;
+export const STOP_TIME_AT_FLOOR = 1;
+export const ESTIMATED_PROCESSING_TIME = 5;
 
-// Passenger generation settings
-export const PERSON_GENERATION_INTERVAL = 1; // Generate 1 person per second
-export const TOTAL_PEOPLE = 40; // Total number of people to simulate
+// 人數
+// 每秒生成的人數
+export const PERSON_GENERATION_INTERVAL = 1;
+export const TOTAL_PEOPLE = 40;
 
-// Other expandable parameters
-export const BUTTONS_PER_FLOOR = 1; // 1 set of buttons shared per floor
+// 按鈕數
+export const BUTTONS_PER_FLOOR = 1;

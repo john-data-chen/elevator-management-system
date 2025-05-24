@@ -1,6 +1,7 @@
 import {
   ELEVATOR_CAPACITY,
   ELEVATOR_TOTAL,
+  ESTIMATED_PROCESSING_TIME,
   MAX_FLOOR,
   MIN_FLOOR,
   PERSON_GENERATION_INTERVAL,
@@ -399,7 +400,8 @@ export function runFullSimulation() {
   };
   let lastLogTime = -1;
   let simulationCycle = 0; // 新增模擬週期計數器
-  const MAX_SIMULATION_CYCLES = TOTAL_PEOPLE * MAX_FLOOR * 5; // 估算一個較大的合理迴圈上限
+  const MAX_SIMULATION_CYCLES =
+    TOTAL_PEOPLE * MAX_FLOOR * ESTIMATED_PROCESSING_TIME;
 
   log(state, { message: '模擬開始' });
 
