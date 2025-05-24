@@ -40,10 +40,32 @@ function initializeElevators(): Elevator[] {
   }));
 }
 
-function assignElevator(state: SimulationState, call: FloorCall): ElevatorId {
-  // 簡單最佳化策略：選擇最近且有空位的電梯
+function assignElevator(
+  state: SimulationState,
+  call: FloorCall
+): ElevatorId | undefined {
+  // SCAN策略：優先選擇同方向且最近的電梯，且有空位
   let bestElevator: Elevator | null = null;
   let minDistance = Number.MAX_SAFE_INTEGER;
+  for (const elevator of state.elevators) {
+    if (elevator.passengers.length >= elevator.capacity) continue;
+    // 電梯方向與呼叫方向一致，或電梯閒置
+    const directionMatch =
+      elevator.currentDirection === call.direction ||
+      elevator.currentDirection === 'idle';
+    if (!directionMatch) continue;
+    const distance = Math.abs(elevator.currentFloor - call.floor);
+    if (distance < minDistance) {
+      minDistance = distance;
+      bestElevator = elevator;
+    }
+  }
+  if (bestElevator) {
+    bestElevator.targetFloors.add(call.floor);
+    return bestElevator.id;
+  }
+  // 若沒有合適電梯，則選擇最近且有空位的電梯
+  minDistance = Number.MAX_SAFE_INTEGER;
   for (const elevator of state.elevators) {
     if (elevator.passengers.length >= elevator.capacity) continue;
     const distance = Math.abs(elevator.currentFloor - call.floor);
@@ -56,10 +78,8 @@ function assignElevator(state: SimulationState, call: FloorCall): ElevatorId {
     bestElevator.targetFloors.add(call.floor);
     return bestElevator.id;
   }
-  // 若都滿載，隨機分配
-  const fallback = state.elevators[0];
-  fallback.targetFloors.add(call.floor);
-  return fallback.id;
+  // 若全部都滿載，**不分配**，等下次再分配
+  return undefined;
 }
 
 function moveElevator(elevator: Elevator) {
@@ -122,7 +142,7 @@ function processElevatorStop(state: SimulationState, elevator: Elevator) {
     person.dropOffTime = state.currentTime;
     state.peopleCompleted++;
     log(state, {
-      message: `Person ${person.id} dropped off at floor ${elevator.currentFloor}`,
+      message: `${person.id} 在 ${elevator.currentFloor} 到達目的地，離開電梯`,
       personId: person.id,
       elevatorId: elevator.id,
       floor: elevator.currentFloor
@@ -144,7 +164,7 @@ function processElevatorStop(state: SimulationState, elevator: Elevator) {
       person.pickupTime = state.currentTime;
       elevator.passengers.push(person);
       log(state, {
-        message: `Person ${person.id} picked up at floor ${elevator.currentFloor}`,
+        message: `${person.id} 在 ${elevator.currentFloor} 樓進電梯`,
         personId: person.id,
         elevatorId: elevator.id,
         floor: elevator.currentFloor
@@ -156,7 +176,7 @@ function processElevatorStop(state: SimulationState, elevator: Elevator) {
 
 export function runFullSimulation() {
   const state: SimulationState = {
-    currentTime: 0,
+    currentTime: 1,
     elevators: initializeElevators(),
     people: [],
     floorCalls: [],
@@ -209,17 +229,23 @@ export function runFullSimulation() {
       state.floorCalls.push(call);
       // 分配電梯
       const assignedId = assignElevator(state, call);
-      person.assignedElevatorId = assignedId;
-      log(state, {
-        message: `Person ${person.id} called elevator at floor ${source} to ${dest}`,
-        personId: person.id,
-        floor: source,
-        elevatorId: assignedId
-      });
-      // 追蹤分配狀況
-      console.log(
-        `[Time ${state.currentTime}] Person ${person.id} assigned to elevator ${assignedId} from ${source} to ${dest}`
-      );
+      if (assignedId) {
+        person.assignedElevatorId = assignedId;
+        log(state, {
+          message: `${person.id} 在 ${source} 樓 按按鈕，要去 ${dest} 樓`,
+          personId: person.id,
+          floor: source,
+          elevatorId: assignedId
+        });
+        console.log(
+          `[Time ${state.currentTime}]${person.id} assigned to elevator ${assignedId} from ${source} to ${dest}`
+        );
+      } else {
+        // 無法分配，等待下次
+        console.log(
+          `[Time ${state.currentTime}] Person ${person.id} could not be assigned to any elevator (all full)`
+        );
+      }
     }
     // 處理每部電梯
     for (const elevator of state.elevators) {
