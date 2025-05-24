@@ -459,29 +459,16 @@ export function runFullSimulation() {
         floor: source,
         direction,
         requestTime: state.currentTime,
-        personId: person.id
+        personId: person.id // 確保每個呼叫都與特定乘客關聯
       };
-      // 嘗試將呼叫加入 floorCalls，但如果已有相同樓層和方向的未處理呼叫，則不重複添加
-      // (一個更精細的策略是檢查是否有未被指派的乘客發出此呼叫)
-      const existingCall = state.floorCalls.find(
-        (fc) => fc.floor === call.floor && fc.direction === call.direction
-      );
-      if (!existingCall) {
-        state.floorCalls.push(call);
-        log(state, {
-          message: `${person.id} 在 ${source} 樓按電梯(${direction})，要去 ${dest} 樓`,
-          personId: person.id,
-          floor: source,
-          details: { destination: dest }
-        });
-      } else {
-        log(state, {
-          message: `${person.id} 在 ${source} 樓等待電梯(${direction})，要去 ${dest} 樓 (已有相同呼叫)`,
-          personId: person.id,
-          floor: source,
-          details: { destination: dest }
-        });
-      }
+      // 移除合併 floorCalls 的邏輯，為每個乘客創建獨立的呼叫記錄
+      state.floorCalls.push(call);
+      log(state, {
+        message: `${person.id} 在 ${source} 樓呼叫電梯去 ${dest} 樓 (${direction})`,
+        personId: person.id,
+        floor: source,
+        details: { destination: dest, direction }
+      });
     }
 
     // 為等待中的乘客分配電梯 (他們可能在上一輪未被分配，或新產生)
