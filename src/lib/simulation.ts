@@ -1,6 +1,7 @@
 import {
   ELEVATOR_CAPACITY,
   ELEVATOR_TOTAL,
+  ESTIMATED_PROCESSING_TIME,
   MAX_FLOOR,
   MIN_FLOOR,
   PERSON_GENERATION_INTERVAL,
@@ -399,7 +400,8 @@ export function runFullSimulation() {
   };
   let lastLogTime = -1;
   let simulationCycle = 0; // 新增模擬週期計數器
-  const MAX_SIMULATION_CYCLES = TOTAL_PEOPLE * MAX_FLOOR * 5; // 估算一個較大的合理迴圈上限
+  const MAX_SIMULATION_CYCLES =
+    TOTAL_PEOPLE * MAX_FLOOR * ESTIMATED_PROCESSING_TIME;
 
   log(state, { message: '模擬開始' });
 
@@ -457,29 +459,16 @@ export function runFullSimulation() {
         floor: source,
         direction,
         requestTime: state.currentTime,
-        personId: person.id
+        personId: person.id // 確保每個呼叫都與特定乘客關聯
       };
-      // 嘗試將呼叫加入 floorCalls，但如果已有相同樓層和方向的未處理呼叫，則不重複添加
-      // (一個更精細的策略是檢查是否有未被指派的乘客發出此呼叫)
-      const existingCall = state.floorCalls.find(
-        (fc) => fc.floor === call.floor && fc.direction === call.direction
-      );
-      if (!existingCall) {
-        state.floorCalls.push(call);
-        log(state, {
-          message: `${person.id} 在 ${source} 樓按電梯(${direction})，要去 ${dest} 樓`,
-          personId: person.id,
-          floor: source,
-          details: { destination: dest }
-        });
-      } else {
-        log(state, {
-          message: `${person.id} 在 ${source} 樓等待電梯(${direction})，要去 ${dest} 樓 (已有相同呼叫)`,
-          personId: person.id,
-          floor: source,
-          details: { destination: dest }
-        });
-      }
+      // 移除合併 floorCalls 的邏輯，為每個乘客創建獨立的呼叫記錄
+      state.floorCalls.push(call);
+      log(state, {
+        message: `${person.id} 在 ${source} 樓呼叫電梯去 ${dest} 樓 (${direction})`,
+        personId: person.id,
+        floor: source,
+        details: { destination: dest, direction }
+      });
     }
 
     // 為等待中的乘客分配電梯 (他們可能在上一輪未被分配，或新產生)
@@ -547,6 +536,39 @@ export function runFullSimulation() {
   console.log(
     `模擬結束於 ${state.currentTime} 秒。已完成 ${state.peopleCompleted} 人。`
   );
+
+  // 新增：輸出未完成的乘客信息
+  const uncompletedPeople = state.people.filter(
+    (p) => p.status !== 'completed'
+  );
+  if (uncompletedPeople.length > 0) {
+    console.warn(`警告：有 ${uncompletedPeople.length} 位乘客未完成行程：`);
+    log(state, {
+      message: `警告：有 ${uncompletedPeople.length} 位乘客未完成行程。`
+    });
+    for (const person of uncompletedPeople) {
+      console.log(
+        `  - 乘客 ID: ${person.id}, 狀態: ${person.status}, 
+          產生時間: ${person.spawnTime}, 起點: ${person.sourceFloor}, 終點: ${person.destinationFloor}, 
+          分配電梯: ${person.assignedElevatorId || '未分配'}, 
+          上車時間: ${person.pickupTime || '未上車'}, 下車時間: ${person.dropOffTime || '未下車'}`
+      );
+      log(state, {
+        message: `未完成乘客: ID=${person.id}, 狀態=${person.status}, 起點=${person.sourceFloor}, 終點=${person.destinationFloor}, 分配電梯=${person.assignedElevatorId || '未分配'}`,
+        personId: person.id,
+        details: {
+          status: person.status,
+          spawnTime: person.spawnTime,
+          sourceFloor: person.sourceFloor,
+          destinationFloor: person.destinationFloor,
+          assignedElevatorId: person.assignedElevatorId || '未分配',
+          pickupTime: person.pickupTime || '未上車',
+          dropOffTime: person.dropOffTime || '未下車'
+        }
+      });
+    }
+  }
+
   return {
     totalTime: state.currentTime,
     logs: state.logs,
