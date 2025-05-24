@@ -547,6 +547,39 @@ export function runFullSimulation() {
   console.log(
     `模擬結束於 ${state.currentTime} 秒。已完成 ${state.peopleCompleted} 人。`
   );
+
+  // 新增：輸出未完成的乘客信息
+  const uncompletedPeople = state.people.filter(
+    (p) => p.status !== 'completed'
+  );
+  if (uncompletedPeople.length > 0) {
+    console.warn(`警告：有 ${uncompletedPeople.length} 位乘客未完成行程：`);
+    log(state, {
+      message: `警告：有 ${uncompletedPeople.length} 位乘客未完成行程。`
+    });
+    for (const person of uncompletedPeople) {
+      console.log(
+        `  - 乘客 ID: ${person.id}, 狀態: ${person.status}, 
+          產生時間: ${person.spawnTime}, 起點: ${person.sourceFloor}, 終點: ${person.destinationFloor}, 
+          分配電梯: ${person.assignedElevatorId || '未分配'}, 
+          上車時間: ${person.pickupTime || '未上車'}, 下車時間: ${person.dropOffTime || '未下車'}`
+      );
+      log(state, {
+        message: `未完成乘客: ID=${person.id}, 狀態=${person.status}, 起點=${person.sourceFloor}, 終點=${person.destinationFloor}, 分配電梯=${person.assignedElevatorId || '未分配'}`,
+        personId: person.id,
+        details: {
+          status: person.status,
+          spawnTime: person.spawnTime,
+          sourceFloor: person.sourceFloor,
+          destinationFloor: person.destinationFloor,
+          assignedElevatorId: person.assignedElevatorId || '未分配',
+          pickupTime: person.pickupTime || '未上車',
+          dropOffTime: person.dropOffTime || '未下車'
+        }
+      });
+    }
+  }
+
   return {
     totalTime: state.currentTime,
     logs: state.logs,
