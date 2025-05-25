@@ -7,6 +7,7 @@ import {
   ELEVATOR_CAPACITY,
   ELEVATOR_TOTAL,
   MAX_FLOOR,
+  MAX_SIMULATION_CYCLES,
   PERSON_GENERATION_INTERVAL,
   STOP_TIME_AT_FLOOR,
   TOTAL_PEOPLE,
@@ -23,9 +24,12 @@ export default function Home() {
   const [totalSimulationTime, setTotalSimulationTime] = useState<number | null>(
     null
   );
+  const [simulationCount, setSimulationCount] = useState<number>(0);
+  const [successfulSimulations, setSuccessfulSimulations] = useState<number>(0);
 
   const handleStartSimulation = () => {
     console.log('Simulation started!');
+    setSimulationCount((prevCount) => prevCount + 1);
     // 清空之前的日誌和時間
     setSimulationLogs([]);
     setTotalSimulationTime(null);
@@ -36,6 +40,13 @@ export default function Home() {
     // 更新狀態
     setSimulationLogs(results.logs);
     setTotalSimulationTime(results.totalTime);
+
+    if (
+      results.totalTime !== null &&
+      results.totalTime < MAX_SIMULATION_CYCLES
+    ) {
+      setSuccessfulSimulations((prevSuccessCount) => prevSuccessCount + 1);
+    }
 
     console.log('Simulation finished!', results);
   };
@@ -79,6 +90,14 @@ export default function Home() {
               總模擬時間: {totalSimulationTime} 秒
             </p>
           )}
+          {/* 新增：顯示成功次數/總次數 */}
+          {simulationCount > 0 && (
+            <p className="text-muted-foreground text-sm">
+              模擬統計: {successfulSimulations} 次成功 / {simulationCount}{' '}
+              次總計 (成功標準: 時間 &lt; {MAX_SIMULATION_CYCLES} 秒)
+            </p>
+          )}
+
           <ScrollArea className="h-96 w-full rounded-md border bg-muted/40 p-4">
             <div id="log-area-content" className="flex flex-col gap-1">
               {simulationLogs.length === 0 ? (
