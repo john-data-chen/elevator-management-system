@@ -463,7 +463,7 @@ export function runFullSimulation() {
       // 移除合併 floorCalls 的邏輯，為每個乘客創建獨立的呼叫記錄
       state.floorCalls.push(call);
       log(state, {
-        message: `${person.id} 在 ${source} 樓呼叫電梯去 ${dest} 樓 (${direction})`,
+        message: `${person.id} 在 ${source} 樓呼叫電梯去 ${dest} 樓 (${direction === 'up' ? '向上' : '向下'})`,
         personId: person.id,
         floor: source,
         details: { destination: dest, direction }
