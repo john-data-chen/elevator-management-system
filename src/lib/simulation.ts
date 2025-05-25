@@ -3,6 +3,7 @@ import {
   ELEVATOR_TOTAL,
   ESTIMATED_PROCESSING_TIME,
   MAX_FLOOR,
+  MAX_SIMULATION_CYCLES,
   MIN_FLOOR,
   PERSON_GENERATION_INTERVAL,
   STOP_TIME_AT_FLOOR,
@@ -400,8 +401,6 @@ export function runFullSimulation() {
   };
   let lastLogTime = -1;
   let simulationCycle = 0; // 新增模擬週期計數器
-  const MAX_SIMULATION_CYCLES =
-    TOTAL_PEOPLE * MAX_FLOOR * ESTIMATED_PROCESSING_TIME;
 
   log(state, { message: '模擬開始' });
 
