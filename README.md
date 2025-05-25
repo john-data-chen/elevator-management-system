@@ -84,10 +84,10 @@ src/
 
 - `initializeElevators()`: 初始化電梯陣列
 - `randomFloor(exclude?)`: 隨機產生樓層
-- `assignElevator(state, call)`: 分配最適合的電梯給呼叫（採用 SCAN 策略）
+- `assignElevator(state, call)`: 分配最適合的電梯給呼叫（採用 LOOK 策略及綜合評分）
 - `moveElevator(state, elevator)`: 控制電梯移動與狀態切換
 - `shouldStopAtCurrentFloor(state, elevator)`: 判斷是否需在當前樓層停靠
-- `getNextTarget(elevator)`: 取得下一個目標樓層（SCAN 策略）
+- `getNextTarget(elevator)`: 取得下一個目標樓層（LOOK 策略）
 - `processElevatorStop(state, elevator)`: 處理電梯停靠、上下乘客
 - `runFullSimulation()`: 主模擬流程
 
@@ -187,7 +187,7 @@ src/
 
 ### 未來改進事項
 
-目前以固定參數在 2000秒(33.3分鐘) 內完成 40 人的成功率約 50~60%。增加模擬週期無助於提高成功率。
+目前以固定參數在 2000秒 (33.3分鐘) 內完成 40 人的成功率約 50~60%。增加模擬週期無助於提高成功率。
 
 - 實驗更多跟不同策略組合，提升成功率。
 - 目前模擬參數皆固定，未來想增加更多的隨機性，以貼近現實情況。
