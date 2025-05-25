@@ -1,7 +1,6 @@
 import {
   ELEVATOR_CAPACITY,
   ELEVATOR_TOTAL,
-  ESTIMATED_PROCESSING_TIME,
   MAX_FLOOR,
   MAX_SIMULATION_CYCLES,
   MIN_FLOOR,
@@ -62,26 +61,44 @@ function assignElevator(
     }
     // 情況2: 電梯與呼叫同方向，且呼叫樓層在電梯路徑上
     else if (elevator.currentDirection === call.direction) {
-      if (call.direction === 'up' && call.floor >= elevator.currentFloor) {
-        score = distance; // 在前方，距離越近越好
-      } else if (
-        call.direction === 'down' &&
-        call.floor <= elevator.currentFloor
+      if (
+        (call.direction === 'up' && call.floor >= elevator.currentFloor) ||
+        (call.direction === 'down' && call.floor <= elevator.currentFloor)
       ) {
-        score = distance; // 在前方，距離越近越好
+        // 在前方，距離越近越好
+        score = distance;
       } else {
-        score = distance + MAX_FLOOR; // 在後方，增加懲罰值
+        // 在後方，增加懲罰值
+        score = distance + MAX_FLOOR * 2;
       }
     }
-    // 情況3: 電梯與呼叫反方向，但電梯目標少或距離近，可考慮
+    // 情況3: 電梯與呼叫反方向，但可能即將轉向
     else {
-      // 懲罰值，反向的電梯優先級較低
-      // 考慮目標樓層數量，目標少的電梯更傾向於接受新請求
-      score = distance + MAX_FLOOR * 2 + elevator.targetFloors.size;
+      // 檢查電梯是否即將轉向（沒有同方向目標）
+      const hasTargetsInCurrentDirection = Array.from(
+        elevator.targetFloors
+      ).some(
+        (floor) =>
+          (elevator.currentDirection === 'up' &&
+            floor > elevator.currentFloor) ||
+          (elevator.currentDirection === 'down' &&
+            floor < elevator.currentFloor)
+      );
+
+      if (!hasTargetsInCurrentDirection) {
+        // 電梯即將轉向，可以優先考慮
+        score = distance + MAX_FLOOR;
+      } else {
+        // 電梯還有同方向目標，增加更高懲罰值
+        score = distance + MAX_FLOOR * 3 + elevator.targetFloors.size;
+      }
     }
 
-    // 考慮電梯負載，乘客越少越好
-    score += elevator.passengers.length * 2; // 每多一個乘客，分數增加
+    // 考慮電梯負載平衡
+    score += elevator.passengers.length * 3; // 增加乘客數量的權重
+
+    // 考慮電梯目標樓層數量
+    score += elevator.targetFloors.size * 2; // 目標樓層越多，分數越高
 
     if (score < minScore) {
       minScore = score;
@@ -112,13 +129,12 @@ function assignElevator(
 }
 
 function moveElevator(state: SimulationState, elevator: Elevator) {
-  // 加入 state 參數
+  // 處理電梯門開啟狀態
   if (elevator.doorOpenTime && elevator.doorOpenTime > 0) {
-    // 檢查門是否開啟
     elevator.doorOpenTime--;
     if (elevator.doorOpenTime === 0) {
       // 門關閉後，重新評估方向和狀態
-      if (elevator.targetFloors.size > 0) {
+      if (elevator.targetFloors.size > 0 || elevator.passengers.length > 0) {
         // 根據下一個目標決定方向
         const nextTarget = getNextTarget(elevator);
         if (nextTarget !== null) {
@@ -129,8 +145,7 @@ function moveElevator(state: SimulationState, elevator: Elevator) {
             elevator.currentDirection = 'down';
             elevator.status = 'movingDown';
           } else {
-            // 如果下一個目標是當前樓層（例如，剛接完人，內部又有同層請求），則再次停靠
-            // 這個情況理論上 processElevatorStop 會處理，但以防萬一
+            // 如果下一個目標是當前樓層，則再次停靠
             processElevatorStop(state, elevator);
             return;
           }
@@ -146,7 +161,7 @@ function moveElevator(state: SimulationState, elevator: Elevator) {
     return; // 門還在倒數，不做其他事
   }
 
-  // 檢查是否需要在當前樓層停靠 (接人或送人)
+  // 檢查是否需要在當前樓層停靠
   if (shouldStopAtCurrentFloor(state, elevator)) {
     processElevatorStop(state, elevator);
     return;
@@ -163,48 +178,24 @@ function moveElevator(state: SimulationState, elevator: Elevator) {
   const nextTarget = getNextTarget(elevator);
 
   if (nextTarget === null) {
-    // 沒有有效目標（例如，所有目標都已過，或乘客都已下車但仍有外部呼叫未處理完）
-    // 嘗試尋找任何剩餘的 targetFloors (可能是反向的)
-    if (elevator.targetFloors.size > 0) {
-      const anyTarget = Array.from(elevator.targetFloors)[0]; // 取一個任意目標
-      if (anyTarget > elevator.currentFloor) {
-        elevator.currentDirection = 'up';
-        elevator.status = 'movingUp';
-      } else if (anyTarget < elevator.currentFloor) {
-        elevator.currentDirection = 'down';
-        elevator.status = 'movingDown';
-      } else {
-        // 如果目標是當前樓層，則停靠
-        processElevatorStop(state, elevator);
-        return;
-      }
-    } else {
-      elevator.status = 'idle';
-      elevator.currentDirection = 'idle';
-      return;
-    }
-  } else {
-    // 朝向下一個目標移動
-    if (nextTarget > elevator.currentFloor) {
-      elevator.currentDirection = 'up';
-      elevator.status = 'movingUp';
-    } else if (nextTarget < elevator.currentFloor) {
-      elevator.currentDirection = 'down';
-      elevator.status = 'movingDown';
-    } else {
-      // 理論上不應該到這裡，因為 shouldStopAtCurrentFloor 會先處理
-      processElevatorStop(state, elevator);
-      return;
-    }
+    // 沒有有效目標，設為閒置
+    elevator.status = 'idle';
+    elevator.currentDirection = 'idle';
+    return;
   }
 
-  // 移動電梯
-  if (elevator.status === 'movingUp') {
+  // Move towards next target
+  if (nextTarget > elevator.currentFloor) {
+    elevator.currentDirection = 'up';
+    elevator.status = 'movingUp';
     elevator.currentFloor++;
-  } else if (elevator.status === 'movingDown') {
+  } else if (nextTarget < elevator.currentFloor) {
+    elevator.currentDirection = 'down';
+    elevator.status = 'movingDown';
     elevator.currentFloor--;
   }
-  // 記錄移動日誌
+
+  // Log movement
   log(state, {
     message: `電梯 ${elevator.id} 移動至 ${elevator.currentFloor} 樓，方向: ${elevator.currentDirection === 'down' ? '向下' : elevator.currentDirection === 'up' ? '向上' : 'idle'}`,
     elevatorId: elevator.id,
@@ -216,7 +207,7 @@ function moveElevator(state: SimulationState, elevator: Elevator) {
   });
 }
 
-// 新增輔助函數：判斷是否需要在當前樓層停靠
+// 優化輔助函數：判斷是否需要在當前樓層停靠
 function shouldStopAtCurrentFloor(
   state: SimulationState,
   elevator: Elevator
@@ -229,6 +220,7 @@ function shouldStopAtCurrentFloor(
   ) {
     return true;
   }
+
   // 2. 是否有外部呼叫在此樓層且與電梯方向一致（或電梯閒置準備接客）
   //    且電梯有容量接客
   if (elevator.passengers.length < elevator.capacity) {
@@ -243,23 +235,33 @@ function shouldStopAtCurrentFloor(
             p.status === 'waiting'
         ) && // 該乘客確實分配給此電梯且在等待
         (elevator.status === 'idle' ||
-          call.direction === elevator.currentDirection) // 方向匹配或電梯閒置
+          call.direction === elevator.currentDirection ||
+          // 新增：如果電梯即將轉向，也可以停靠
+          (elevator.targetFloors.size > 0 &&
+            !Array.from(elevator.targetFloors).some(
+              (floor) =>
+                (elevator.currentDirection === 'up' &&
+                  floor > elevator.currentFloor) ||
+                (elevator.currentDirection === 'down' &&
+                  floor < elevator.currentFloor)
+            )))
     );
     if (hasMatchingFloorCall) {
       return true;
     }
   }
-  // 3. 是否 targetFloors 包含當前樓層 (可能來自內部按鈕或先前分配的外部呼叫)
+
+  // 3. 是否 targetFloors 包含當前樓層
   if (elevator.targetFloors.has(elevator.currentFloor)) {
     return true;
   }
+
   return false;
 }
 
-// 新增輔助函數：獲取下一個目標樓層 (SCAN 策略)
+// 優化輔助函數：獲取下一個目標樓層 (LOOK 策略)
 function getNextTarget(elevator: Elevator): FloorNumber | null {
   const { currentFloor, currentDirection, passengers, targetFloors } = elevator;
-  let potentialTargets: FloorNumber[] = [];
 
   // 收集所有相關目標：乘客目的地 + 外部呼叫樓層
   const allTargets = new Set<FloorNumber>(targetFloors);
@@ -269,34 +271,53 @@ function getNextTarget(elevator: Elevator): FloorNumber | null {
 
   if (allTargets.size === 0) return null;
 
+  // 將目標轉換為數組並排序
+  const targetsArray = Array.from(allTargets);
+
+  // 當前方向是向上或閒置時
   if (currentDirection === 'up' || currentDirection === 'idle') {
-    // 如果閒置，預設向上尋找
-    // 向上時，尋找所有在當前樓層之上（包含）的目標
-    potentialTargets = Array.from(allTargets)
-      .filter((f) => f >= currentFloor)
+    // 尋找當前樓層之上的目標（包含當前樓層）
+    const upwardTargets = targetsArray
+      .filter((floor) => floor >= currentFloor)
       .sort((a, b) => a - b);
-    if (potentialTargets.length > 0) return potentialTargets[0];
-    // 如果上方沒有目標，則尋找下方最遠的目標（準備轉向）
-    potentialTargets = Array.from(allTargets).sort((a, b) => b - a); // 降序，取第一個即最遠（最大）
-    if (potentialTargets.length > 0) return potentialTargets[0];
+    if (upwardTargets.length > 0) {
+      return upwardTargets[0]; // 返回最近的上方目標
+    }
+
+    // 如果上方沒有目標，則尋找下方目標（準備轉向）
+    const downwardTargets = targetsArray
+      .filter((floor) => floor < currentFloor)
+      .sort((a, b) => b - a);
+    if (downwardTargets.length > 0) {
+      return downwardTargets[0]; // 返回最高的下方目標
+    }
   }
 
-  if (currentDirection === 'down' || currentDirection === 'idle') {
-    // 如果閒置且上方無目標，則向下尋找
-    // 向下時，尋找所有在當前樓層之下（包含）的目標
-    potentialTargets = Array.from(allTargets)
-      .filter((f) => f <= currentFloor)
+  // 當前方向是向下時
+  if (currentDirection === 'down') {
+    // 尋找當前樓層之下的目標（包含當前樓層）
+    const downwardTargets = targetsArray
+      .filter((floor) => floor <= currentFloor)
       .sort((a, b) => b - a);
-    if (potentialTargets.length > 0) return potentialTargets[0];
-    // 如果下方沒有目標，則尋找上方最遠的目標（準備轉向）
-    potentialTargets = Array.from(allTargets).sort((a, b) => a - b); // 升序，取第一個即最遠（最小）
-    if (potentialTargets.length > 0) return potentialTargets[0];
+    if (downwardTargets.length > 0) {
+      return downwardTargets[0]; // 返回最近的下方目標
+    }
+
+    // 如果下方沒有目標，則尋找上方目標（準備轉向）
+    const upwardTargets = targetsArray
+      .filter((floor) => floor > currentFloor)
+      .sort((a, b) => a - b);
+    if (upwardTargets.length > 0) {
+      return upwardTargets[0]; // 返回最低的上方目標
+    }
   }
-  return null; // 理論上不應到達這裡如果 allTargets 非空
+
+  // 如果沒有找到任何目標（理論上不應該發生）
+  return targetsArray.length > 0 ? targetsArray[0] : null;
 }
 
 function processElevatorStop(state: SimulationState, elevator: Elevator) {
-  // 只有在電梯狀態不是 'doorsOpen' 或 doorOpenTime 為 0 時才執行停靠邏輯，避免重複觸發
+  // 只有在電梯狀態不是 'doorsOpen' 或 doorOpenTime 為 0 時才執行停靠邏輯
   if (
     elevator.status === 'doorsOpen' &&
     elevator.doorOpenTime &&
@@ -307,9 +328,6 @@ function processElevatorStop(state: SimulationState, elevator: Elevator) {
 
   elevator.status = 'doorsOpen'; // 改為 doorsOpen
   elevator.doorOpenTime = STOP_TIME_AT_FLOOR;
-  // 從 targetFloors 移除當前樓層，因為已經到達
-  // 但注意：如果乘客進入後又按了同層，這個邏輯需要小心，通常是離開優先
-  // elevator.targetFloors.delete(elevator.currentFloor); // 暫時保留，看 getNextTarget 是否能正確處理
 
   log(state, {
     message: `電梯 ${elevator.id} 在 ${elevator.currentFloor} 樓停靠開門`,
@@ -337,7 +355,6 @@ function processElevatorStop(state: SimulationState, elevator: Elevator) {
   );
 
   // 乘客進入電梯
-  // 從 state.floorCalls 中找到對應此電梯、此樓層的呼叫
   const peopleWaitingForThisElevator = state.people.filter(
     (p) =>
       p.status === 'waiting' &&
@@ -363,29 +380,64 @@ function processElevatorStop(state: SimulationState, elevator: Elevator) {
           !(call.personId === person.id && call.floor === person.sourceFloor)
       );
     } else {
-      // 電梯已滿，此人需要等待下一次機會 (理論上 assignElevator 應該避免這種情況，但以防萬一)
+      // 電梯已滿，此人需要等待下一次機會
       log(state, {
         message: `電梯 ${elevator.id} 已滿，${person.id} 在 ${elevator.currentFloor} 樓無法進入，繼續等待`,
         personId: person.id,
         elevatorId: elevator.id,
         floor: elevator.currentFloor
       });
+
+      // 重新分配電梯（如果可能）
+      if (
+        state.elevators.some(
+          (e) => e.id !== elevator.id && e.passengers.length < e.capacity
+        )
+      ) {
+        // 創建一個臨時呼叫來重新分配
+        const tempCall: FloorCall = {
+          floor: person.sourceFloor,
+          direction:
+            person.destinationFloor > person.sourceFloor ? 'up' : 'down',
+          requestTime: state.currentTime,
+          personId: person.id
+        };
+
+        // 嘗試分配給另一部電梯
+        const otherElevators = state.elevators.filter(
+          (e) => e.id !== elevator.id
+        );
+        let bestScore = Number.MAX_SAFE_INTEGER;
+        let bestElevator: Elevator | null = null;
+
+        for (const e of otherElevators) {
+          if (e.passengers.length >= e.capacity) continue;
+
+          const score =
+            Math.abs(e.currentFloor - person.sourceFloor) +
+            e.passengers.length * 2;
+          if (score < bestScore) {
+            bestScore = score;
+            bestElevator = e;
+          }
+        }
+
+        if (bestElevator) {
+          person.assignedElevatorId = bestElevator.id;
+          bestElevator.targetFloors.add(person.sourceFloor);
+          log(state, {
+            message: `重新分配 ${person.id} 給電梯 ${bestElevator.id}`,
+            personId: person.id,
+            elevatorId: bestElevator.id,
+            floor: person.sourceFloor
+          });
+        }
+      }
     }
   }
-  // 清理 targetFloors 中的當前樓層，因為已經處理完畢
-  // 這個操作必須在乘客進入並加入新目標之後，以避免遺漏內部請求
-  if (
-    elevator.passengers.every(
-      (p) => p.destinationFloor !== elevator.currentFloor
-    ) &&
-    !peopleWaitingForThisElevator.some(
-      (p) =>
-        p.status === 'waiting' && elevator.passengers.length < elevator.capacity
-    )
-  ) {
-    // 只有在沒有人要在本層下，且沒有等待上電梯的人（或電梯滿了無法上）時，才移除目標
-    elevator.targetFloors.delete(elevator.currentFloor);
-  }
+
+  // 清理 targetFloors 中的當前樓層
+  elevator.targetFloors.delete(elevator.currentFloor);
 }
 
 export function runFullSimulation() {
@@ -463,7 +515,7 @@ export function runFullSimulation() {
       // 移除合併 floorCalls 的邏輯，為每個乘客創建獨立的呼叫記錄
       state.floorCalls.push(call);
       log(state, {
-        message: `${person.id} 在 ${source} 樓呼叫電梯去 ${dest} 樓 (${direction})`,
+        message: `${person.id} 在 ${source} 樓呼叫電梯去 ${dest} 樓 (${direction === 'up' ? '向上' : '向下'})`,
         personId: person.id,
         floor: source,
         details: { destination: dest, direction }
@@ -471,11 +523,9 @@ export function runFullSimulation() {
     }
 
     // 為等待中的乘客分配電梯 (他們可能在上一輪未被分配，或新產生)
-    // 同時處理 floorCalls 列表
-    const unassignedPeople = state.people.filter(
+    for (const person of state.people.filter(
       (p) => p.status === 'waiting' && !p.assignedElevatorId
-    );
-    for (const person of unassignedPeople) {
+    )) {
       // 找到此人對應的 floorCall (如果有的話，理論上應該有)
       let callForPerson = state.floorCalls.find(
         (fc) => fc.personId === person.id
@@ -547,9 +597,9 @@ export function runFullSimulation() {
     });
     for (const person of uncompletedPeople) {
       console.log(
-        `  - 乘客 ID: ${person.id}, 狀態: ${person.status}, 
-          產生時間: ${person.spawnTime}, 起點: ${person.sourceFloor}, 終點: ${person.destinationFloor}, 
-          分配電梯: ${person.assignedElevatorId || '未分配'}, 
+        `  - 乘客 ID: ${person.id}, 狀態: ${person.status},
+          產生時間: ${person.spawnTime}, 起點: ${person.sourceFloor}, 終點: ${person.destinationFloor},
+          分配電梯: ${person.assignedElevatorId || '未分配'},
           上車時間: ${person.pickupTime || '未上車'}, 下車時間: ${person.dropOffTime || '未下車'}`
       );
       log(state, {
