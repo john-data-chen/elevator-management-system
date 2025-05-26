@@ -51,7 +51,9 @@ function assignElevator(
   let bestElevatorDetails = {};
 
   log(state, {
-    message: `為呼叫 (樓層 ${call.floor}, 方向：向${call.direction === 'down' ? '下' : '上'}, 乘客 ${call.personId}) 分配電梯中...`,
+    message: `為呼叫 (樓層 ${call.floor}, 方向: 向${
+      call.direction === 'down' ? '下' : '上'
+    }, 乘客 ${call.personId}) 分配電梯中...`,
     details: {
       callFloor: call.floor,
       callDirection: call.direction,
@@ -83,7 +85,7 @@ function assignElevator(
     // 情況1: 電梯閒置
     if (elevator.status === 'idle') {
       score = distance; // 距離越近越好
-      scoreReason = `閒置，距離 ${distance}`;
+      scoreReason = `閒置，距離: ${distance}`;
     }
     // 情況2: 電梯與呼叫同方向，且呼叫樓層在電梯路徑上
     else if (elevator.currentDirection === call.direction) {
@@ -143,12 +145,14 @@ function assignElevator(
       scoreReason += ', 已滿載懲罰 +1000';
     } else {
       score += elevator.passengers.length * 2; // 乘客越多，分數略高
-      scoreReason += `, 乘客數 ${elevator.passengers.length} 懲罰 +${elevator.passengers.length * 2}`;
+      scoreReason += `, 乘客數: ${elevator.passengers.length}, 懲罰: +${
+        elevator.passengers.length * 2
+      }`;
     }
 
     // 考慮電梯目標樓層數量 (懲罰目標多的電梯，讓它先完成當前任務)
     score += elevator.targetFloors.size;
-    scoreReason += `, 目標數 ${elevator.targetFloors.size} 懲罰 +${elevator.targetFloors.size}`;
+    scoreReason += `, 目標數: ${elevator.targetFloors.size}, 懲罰: +${elevator.targetFloors.size}`;
 
     log(state, {
       message: `電梯 ${elevator.id} 評估: 分數 ${score} (原因: ${scoreReason})`,
@@ -179,7 +183,9 @@ function assignElevator(
 
   if (bestElevator) {
     log(state, {
-      message: `選擇電梯 ${bestElevator.id} (分數 ${minScore}) 來處理呼叫 (樓層 ${call.floor}, 方向 ${call.direction}, 乘客 ${call.personId})`,
+      message: `選擇電梯 ${bestElevator.id} (分數 ${minScore}) 來處理呼叫 (樓層 ${call.floor}, 方向: 向${
+        call.direction === 'down' ? '下' : '上'
+      }, 乘客 ${call.personId})`,
       elevatorId: bestElevator.id,
       details: {
         ...bestElevatorDetails,
@@ -210,7 +216,9 @@ function assignElevator(
   }
 
   log(state, {
-    message: `沒有合適的電梯來處理呼叫 (樓層 ${call.floor}, 方向 ${call.direction}, 乘客 ${call.personId})`,
+    message: `沒有合適的電梯來處理呼叫 (樓層 ${call.floor}, 方向向${
+      call.direction === 'down' ? '下' : '上'
+    }, 乘客 ${call.personId})`,
     details: {
       callFloor: call.floor,
       callDirection: call.direction,
@@ -349,7 +357,15 @@ function moveElevator(state: SimulationState, elevator: Elevator) {
 
   if (moved) {
     log(state, {
-      message: `電梯 ${elevator.id} 移動至 ${elevator.currentFloor} 樓 (目標 ${nextTarget})，方向向${elevator.currentDirection === 'down' ? '下' : elevator.currentDirection === 'up' ? '上' : 'idle'}`,
+      message: `電梯 ${elevator.id} 移動至 ${
+        elevator.currentFloor
+      } 樓 (目標 ${nextTarget})，方向向${
+        elevator.currentDirection === 'down'
+          ? '下'
+          : elevator.currentDirection === 'up'
+            ? '上'
+            : 'idle'
+      }`,
       elevatorId: elevator.id,
       floor: elevator.currentFloor,
       details: {
@@ -372,7 +388,9 @@ function shouldStopAtCurrentFloor(
     )
   ) {
     log(state, {
-      message: `電梯 ${elevator.id} 應在 ${elevator.currentFloor} 樓停靠：有乘客 (${elevator.passengers
+      message: `電梯 ${elevator.id} 應在 ${
+        elevator.currentFloor
+      } 樓停靠：有乘客 (${elevator.passengers
         .filter((p) => p.destinationFloor === elevator.currentFloor)
         .map((p) => p.id)
         .join(',')}) 要下車。`,
@@ -484,7 +502,7 @@ function getNextTarget(
 
   if (allTargets.size === 0) {
     log(state, {
-      message: `電梯 ${id} (在 ${currentFloor} 樓) getNextTarget: 無任何目標。`,
+      message: `電梯 ${id} (在 ${currentFloor} 樓) 下一個目標: 無任何目標。`,
       elevatorId: id
     });
     return null;
@@ -501,7 +519,11 @@ function getNextTarget(
     if (upwardTargets.length > 0) {
       chosenTarget = upwardTargets[0];
       log(state, {
-        message: `電梯 ${id} (在 ${currentFloor} 樓, 方向 ${currentDirection}) getNextTarget: 選擇最近的上方目標 ${chosenTarget}。候選: ${upwardTargets.join(',')}`,
+        message: `電梯 ${id} (在 ${currentFloor} 樓, 方向向 ${
+          currentDirection === 'up' ? '上' : '閒置'
+        }, 下一個目標: 選擇最近的上方目標 ${chosenTarget}。候選樓層: ${upwardTargets.join(
+          ', '
+        )}`,
         elevatorId: id
       });
     } else {
@@ -512,7 +534,11 @@ function getNextTarget(
       if (downwardTargets.length > 0) {
         chosenTarget = downwardTargets[0];
         log(state, {
-          message: `電梯 ${id} (在 ${currentFloor} 樓, 方向 ${currentDirection}) getNextTarget: 無上方目標，轉向選擇最高的下方目標 ${chosenTarget}。候選: ${downwardTargets.join(',')}`,
+          message: `電梯 ${id} (在 ${currentFloor} 樓, 方向向 ${
+            currentDirection === 'up' ? '上' : '閒置'
+          }, 下一個目標: 無上方目標，轉向選擇最高的下方目標 ${chosenTarget}。候選樓層: ${downwardTargets.join(
+            ', '
+          )}`,
           elevatorId: id
         });
       }
@@ -528,7 +554,11 @@ function getNextTarget(
     if (downwardTargets.length > 0) {
       chosenTarget = downwardTargets[0];
       log(state, {
-        message: `電梯 ${id} (在 ${currentFloor} 樓, 方向 ${currentDirection}) getNextTarget: 選擇最近的下方目標 ${chosenTarget}。候選: ${downwardTargets.join(',')}`,
+        message: `電梯 ${id} (在 ${currentFloor} 樓, 方向向 ${
+          currentDirection === 'down' ? '下' : '閒置'
+        }, 下一個目標: 選擇最近的下方目標 ${chosenTarget}。候選樓層: ${downwardTargets.join(
+          ', '
+        )}`,
         elevatorId: id
       });
     } else {
@@ -539,7 +569,11 @@ function getNextTarget(
       if (upwardTargets.length > 0) {
         chosenTarget = upwardTargets[0];
         log(state, {
-          message: `電梯 ${id} (在 ${currentFloor} 樓, 方向 ${currentDirection}) getNextTarget: 無下方目標，轉向選擇最低的上方目標 ${chosenTarget}。候選: ${upwardTargets.join(',')}`,
+          message: `電梯 ${id} (在 ${currentFloor} 樓, 方向向 ${
+            currentDirection === 'down' ? '下' : '閒置'
+          }, 下一個目標: 無下方目標，轉向選擇最低的上方目標 ${chosenTarget}。候選樓層: ${upwardTargets.join(
+            ', '
+          )}`,
           elevatorId: id
         });
       }
@@ -550,7 +584,9 @@ function getNextTarget(
     // 如果上述邏輯都沒選到 (例如 idle 且所有目標都在下方)，則隨便選一個 (實際上 assignElevator 會設定方向)
     chosenTarget = targetsArray[0];
     log(state, {
-      message: `電梯 ${id} (在 ${currentFloor} 樓, 方向 ${currentDirection}) getNextTarget: 未按方向邏輯選定，選擇第一個可用目標 ${chosenTarget}。所有目標: ${targetsArray.join(',')}`,
+      message: `電梯 ${id} (在 ${currentFloor} 樓, 方向: ${currentDirection === 'up' ? '向上' : currentDirection === 'down' ? '向下' : '閒置'}), 下一個目標: 未按方向邏輯選定，選擇第一個可用目標 ${chosenTarget}。所有目標: ${targetsArray.join(
+        ','
+      )}`,
       elevatorId: id
     });
   }
@@ -578,7 +614,7 @@ function processElevatorStop(state: SimulationState, elevator: Elevator) {
   elevator.doorOpenTime = STOP_TIME_AT_FLOOR;
 
   log(state, {
-    message: `電梯 ${elevator.id} 在 ${elevator.currentFloor} 樓停靠開門 (先前狀態: ${previousStatus})。門將開啟 ${STOP_TIME_AT_FLOOR} 秒。`,
+    message: `電梯 ${elevator.id} 在 ${elevator.currentFloor} 樓停靠開門 (先前狀態: ${previousStatus === 'movingDown' ? '向下移動' : previousStatus === 'movingUp' ? '向上移動' : previousStatus === 'idle' ? '閒置' : previousStatus === 'stopped' ? '停止' : '門開啟'})。門將開啟 ${STOP_TIME_AT_FLOOR} 秒。`,
     elevatorId: elevator.id,
     floor: elevator.currentFloor,
     details: { previousStatus, doorOpenTimeSet: STOP_TIME_AT_FLOOR }
@@ -634,14 +670,14 @@ function processElevatorStop(state: SimulationState, elevator: Elevator) {
       );
       if (callIndex > -1) {
         log(state, {
-          message: `從 floorCalls 移除乘客 ${person.id} 在 ${person.sourceFloor} 樓的呼叫。`,
+          message: `移除乘客 ${person.id} 在 ${person.sourceFloor} 樓的呼叫。`,
           personId: person.id,
           floor: person.sourceFloor
         });
         state.floorCalls.splice(callIndex, 1);
       } else {
         log(state, {
-          message: `警告：乘客 ${person.id} 在 ${person.sourceFloor} 樓進入電梯，但在 floorCalls 中未找到其呼叫記錄。`,
+          message: `警告：乘客 ${person.id} 在 ${person.sourceFloor} 樓進入電梯，但未找到其呼叫記錄。`,
           personId: person.id,
           floor: person.sourceFloor
         });
@@ -670,13 +706,13 @@ function processElevatorStop(state: SimulationState, elevator: Elevator) {
         };
         state.floorCalls.push(newCallForWaitingPerson);
         log(state, {
-          message: `乘客 ${person.id} 因電梯滿無法進入，重新加入 floorCalls 進行分配。`,
+          message: `乘客 ${person.id} 因電梯滿無法進入，重新進行分配。`,
           personId: person.id,
           floor: person.sourceFloor
         });
       } else {
         log(state, {
-          message: `乘客 ${person.id} 因電梯滿無法進入，其呼叫已在 floorCalls 中，等待重新分配。`,
+          message: `乘客 ${person.id} 因電梯滿無法進入，其呼叫等待重新分配。`,
           personId: person.id,
           floor: person.sourceFloor
         });
@@ -687,7 +723,7 @@ function processElevatorStop(state: SimulationState, elevator: Elevator) {
   // 清理 targetFloors 中的當前樓層 (因為已經停靠處理了)
   if (elevator.targetFloors.has(elevator.currentFloor)) {
     log(state, {
-      message: `電梯 ${elevator.id} 已在 ${elevator.currentFloor} 樓停靠，從 targetFloors 移除此樓層。`,
+      message: `電梯 ${elevator.id} 已在 ${elevator.currentFloor} 樓停靠，從待停靠樓層移除。`,
       elevatorId: elevator.id,
       floor: elevator.currentFloor
     });
@@ -724,9 +760,11 @@ export function runFullSimulation() {
       );
       for (const e of state.elevators) {
         console.log(
-          `  電梯 ${e.id}: 樓層 ${e.currentFloor}, 狀態 ${e.status}, 方向 ${e.currentDirection}, 乘客 ${e.passengers.length} (${e.passengers.map((p) => p.id).join(',')}), 目標 ${Array.from(
-            e.targetFloors
-          )
+          `  電梯 ${e.id}: 樓層 ${e.currentFloor}, 狀態 ${e.status}, 方向 ${
+            e.currentDirection
+          }, 乘客 ${e.passengers.length} (${e.passengers
+            .map((p) => p.id)
+            .join(',')}), 目標 ${Array.from(e.targetFloors)
             .sort((a, b) => a - b)
             .join(',')}, 門 ${e.doorOpenTime}`
         );
@@ -760,7 +798,11 @@ export function runFullSimulation() {
       };
       state.floorCalls.push(call);
       log(state, {
-        message: `乘客 ${person.id} 在 ${source} 樓呼叫電梯前往 ${dest} 樓 (方向：${call.direction === 'down' ? '向下' : '向上'})。`,
+        message: `乘客 ${
+          person.id
+        } 在 ${source} 樓呼叫電梯前往 ${dest} 樓 (方向：${
+          call.direction === 'down' ? '向下' : '向上'
+        })。`,
         personId: person.id,
         floor: source,
         details: {
@@ -849,10 +891,16 @@ export function runFullSimulation() {
         `  - 乘客 ID: ${person.id}, 狀態: ${person.status}, ` +
           `產生時間: ${person.spawnTime}, 起點: ${person.sourceFloor}, 終點: ${person.destinationFloor}, ` +
           `分配電梯: ${person.assignedElevatorId || '未分配'}, ` +
-          `上車時間: ${person.pickupTime || '未上車'}, 下車時間: ${person.dropOffTime || '未下車'}`
+          `上車時間: ${person.pickupTime || '未上車'}, 下車時間: ${
+            person.dropOffTime || '未下車'
+          }`
       );
       log(state, {
-        message: `未完成乘客: ID=${person.id}, 狀態=${person.status}, 起點=${person.sourceFloor}, 終點=${person.destinationFloor}, 分配電梯=${person.assignedElevatorId || '未分配'}`,
+        message: `未完成乘客: ID=${person.id}, 狀態=${person.status}, 起點=${
+          person.sourceFloor
+        }, 終點=${person.destinationFloor}, 分配電梯=${
+          person.assignedElevatorId || '未分配'
+        }`,
         personId: person.id,
         details: {
           status: person.status,
