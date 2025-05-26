@@ -69,7 +69,7 @@ export default function Home() {
           <li>每停一次處理接人放人需耗 {STOP_TIME_AT_FLOOR} 秒</li>
           <li>
             每 {PERSON_GENERATION_INTERVAL}
-            秒產生1個人按電梯，設定出現樓層與目標的樓層，樓層隨機
+            秒產生1個人 按電梯，設定出現樓層與目標的樓層，樓層隨機
           </li>
           <li>
             模擬放進 {TOTAL_PEOPLE} 人次，該設計需消耗掉所有人數，並統計秒數
